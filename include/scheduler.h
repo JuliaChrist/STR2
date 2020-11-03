@@ -4,6 +4,7 @@
 #include <utility/queue.h>
 #include <cpu.h>
 #include <machine.h>
+#include <utility/list.h>
 
 /*
  * insert(obj: List_Link<T>)

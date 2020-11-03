@@ -17,9 +17,7 @@ Scheduler_Timer * Thread::_timer;
 
 Thread* volatile Thread::_running;
 
-//Scheduling_List * Thread::_scheduler;
-
-Scheduler<Thread> Thread::_scheduler;
+Scheduler<Thread, Thread::Priority> Thread::_scheduler;
 //Thread::Queue Thread::_ready;
 Thread::Queue Thread::_suspended;
 
@@ -29,7 +27,6 @@ void Thread::constructor_prolog(unsigned int stack_size)
     lock();
 
     _thread_count++;
-     
     
     _stack = new (SYSTEM) char[stack_size];
 }
