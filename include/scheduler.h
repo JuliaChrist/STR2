@@ -4,7 +4,7 @@
 #include <utility/queue.h>
 #include <cpu.h>
 #include <machine.h>
-//#include <thread.h>
+
 /*
  * insert(obj: List_Link<T>)
  * remove(obj: List_Link<T>): T
@@ -26,10 +26,11 @@ protected:
     typedef Scheduling_List<T, P> Base;
 
 public:
+
     Scheduler() {};
     
     void insert(T * obj){
-        Base::insert(obj);
+        Base::insert(obj->link());
     }
     
     T * remove(T * obj){
@@ -41,13 +42,13 @@ public:
         return(Base::remove()->object());
     }
 
-    // // void suspend(T * obj){
-    // //     AAA::remove(obj->link());
-    // // }
+    void suspend(T * obj){
+        Base::remove(obj->link());
+    }
 
-    // void resume(T * obj){
-    //     AAA::insert(obj->link());
-    // }
+    void resume(T * obj){
+        Base::insert(obj->link());
+    }
 
 };
 __END_SYS

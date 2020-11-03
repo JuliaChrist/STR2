@@ -65,7 +65,7 @@ public:
     };
 
     // Thread Queue
-    typedef Ordered_Queue<Thread, Priority> Queue;
+    typedef Ordered_Queue<Thread, Priority, Scheduler<Thread, Priority>::Element> Queue;
 
 public:
     template<typename ... Tn>
@@ -132,7 +132,6 @@ private:
     //static Queue _ready;
     static Queue _suspended;
     static Scheduler<Thread, Priority> _scheduler;
-    //static Scheduling_List<Thread, Priority> _scheduler;
 };
 
 
