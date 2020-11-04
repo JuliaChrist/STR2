@@ -5,7 +5,7 @@
 #include <cpu.h>
 #include <machine.h>
 #include <utility/list.h>
-
+//#include <thread.h>
 /*
  * insert(obj: List_Link<T>)
  * remove(obj: List_Link<T>): T
@@ -17,7 +17,8 @@
  * 
  */
 
-__BEGIN_SYS
+__BEGIN_UTIL
+
 
 template<typename T, typename P = typename T::Priority>
 class Scheduler: public Scheduling_List<T, P>
@@ -27,36 +28,58 @@ protected:
     typedef Scheduling_List<T, P> Base;
 
 public:
-
     Scheduler() {};
-    
+    //--------------------//
     void insert(T * obj){
-        //inserir de acordo com o critério
         Base::insert(obj->link());
     }
-    
+    //--------------------//
     T * remove(T * obj){
-        //remover de acordo com o critério
-        Base::remove(obj);
+        Base::remove(obj->link());
         return(obj);
     }
-    
-    T * remove(){
-        //remover de acordo com o critério
-        return(Base::remove()->object());
-    }
-
-    void suspend(T * obj){
-        //remover de acordo com o critério
-        Base::remove(obj->link());
-    }
-
+    //--------------------//
     void resume(T * obj){
-        //remover de acordo com o critério
         Base::insert(obj->link());
     }
+    //--------------------//
+    void suspend(T * obj){
+        Base::remove(obj->link());
+    }
+    //--------------------//
+    T * volatile chosen() {
+        return const_cast<T * volatile>((Base::chosen()) ? Base::chosen()->object() : 0);
+    }
+    //--------------------//
+    T * choose() {
+        T * obj = Base::chosen() ? Base::choose()->object() : 0;
+        return obj;
+    }
+    //--------------------//
+    T * choose(T * obj) {
+        if(!Base::choose(obj->link()))
+            obj = 0;
+        return obj;
+    }
+    //--------------------//
+    T * choose_another() {
+        T * obj = Base::choose_another()->object();
+        return obj;
+    }
+    //--------------------//
+    T * remove(){
+    auto *aaa = Base::choose();
+    if(aaa != 0){
+        Base::remove(aaa);
+        return aaa->object();
+    }
+    else{
+        return(0);
+    }
+    }
+
 
 };
-__END_SYS
+__END_UTIL
 
 #endif

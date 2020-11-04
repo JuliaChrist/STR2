@@ -17,9 +17,10 @@ Scheduler_Timer * Thread::_timer;
 
 Thread* volatile Thread::_running;
 
-Scheduler<Thread, Thread::Priority> Thread::_scheduler;
-//Thread::Queue Thread::_ready;
+//Scheduling_List * Thread::_scheduler;
+
 Thread::Queue Thread::_suspended;
+Scheduler<Thread> Thread::_scheduler;
 
 // Methods
 void Thread::constructor_prolog(unsigned int stack_size)
@@ -27,6 +28,7 @@ void Thread::constructor_prolog(unsigned int stack_size)
     lock();
 
     _thread_count++;
+     
     
     _stack = new (SYSTEM) char[stack_size];
 }
@@ -43,21 +45,15 @@ void Thread::constructor_epilog(const Log_Addr & entry, unsigned int stack_size)
                     << "," << *_context << "}) => " << this << endl;
 
     switch(_state) {
-        case RUNNING: _scheduler.remove(this); break;
+        case RUNNING: break;
 
-        //case READY: _ready.insert(&_link); break;
         case READY: _scheduler.insert(this); break;
 
-        //case SUSPENDED: _suspended.insert(&_link); break;
-        case SUSPENDED: 
-            _suspended.insert(&_link);
-            _scheduler.remove(this); 
-            break;
-
-        //case WAITING: break;
-        case WAITING: _scheduler.remove(this); break;
-        //case FINISHING: break;
-        case FINISHING: _scheduler.remove(this); break;
+        case SUSPENDED: _suspended.insert(&_link); break;
+            
+        case WAITING: break;
+        
+        case FINISHING: break;
     }
 
     if(preemptive && (_state == READY) && (_link.rank() != IDLE))
@@ -86,7 +82,6 @@ Thread::~Thread()
         exit(-1);
         break;
     case READY:
-        //_ready.remove(this);
         _scheduler.remove(this);
         _thread_count--;
         break;
@@ -141,14 +136,12 @@ void Thread::pass()
     
   
     Thread * prev = _running;
-    //Thread * prev = _scheduler.chosen();
     prev->_state = READY;
     _scheduler.insert(prev);
 
     _scheduler.remove(this);
     _state = RUNNING;
     _running = this;
-    //Thread * neew = _scheduler.choose(this);
 
     dispatch(prev, this);
 
@@ -165,24 +158,16 @@ void Thread::suspend()
 
     if(_running != this)
         _scheduler.remove(this);
-
-    //if(_scheduler.chosen() != this)
-    //    _scheduler.suspend(this);
     
     _state = SUSPENDED;
     _suspended.insert(&_link);
 
     if(_running == this) {
-        Thread * aaa = _scheduler.remove();
+    Thread * aaa = _scheduler.remove();
         _running = aaa;
         _running->_state = RUNNING;
         dispatch(this, _running);
     }
-    //if(_scheduler.chosen() == this) {
-    //    Thread * neew = _scheduler.choose_another();
-    //    _scheduler.chosen()->_state = RUNNING;
-    //    dispatch(this, neew);
-    //}
 
     unlock();
 }
@@ -194,8 +179,8 @@ void Thread::resume()
 
     db<Thread>(TRC) << "Thread::resume(this=" << this << ")" << endl;
     _suspended.remove(this);
-    _scheduler.insert(this);
     _state = READY;
+    _scheduler.resume(this);
    //_ready.insert(&_link);
 
    unlock();
@@ -209,17 +194,13 @@ void Thread::yield()
 
     db<Thread>(TRC) << "Thread::yield(running=" << _running << ")" << endl;
     Thread * prev = _running;
-    //Thread * prev = _scheduler.chosen();
     prev->_state = READY;
     _scheduler.insert(prev);
-    //_ready.insert(&prev->_link);
 
-    //Thread * neew = _scheduler.choose_another();
-    //neew->_state = RUNNING;
-    //dispatch(prev, neew);
     
-    _running = _scheduler.remove();
+    _running = _scheduler.remove(); 
     _running->_state = RUNNING;
+    
     dispatch(prev, _running);
     
     unlock();
@@ -232,7 +213,6 @@ void Thread::exit(int status)
 
     db<Thread>(TRC) << "Thread::exit(status=" << status << ") [running=" << running() << "]" << endl;
 
-    //Thread * prev = _scheduler.chosen();
     Thread * prev = _running;
     prev->_state = FINISHING;
     *reinterpret_cast<int *>(prev->_stack) = status;
@@ -240,8 +220,7 @@ void Thread::exit(int status)
     _thread_count--;
 
     if(prev->_joining) {
-        //prev->_joining->resume();
-        _scheduler.insert(prev->_joining);
+        _scheduler.resume(prev->_joining);
         prev->_joining = 0;
     }
 
@@ -249,10 +228,9 @@ void Thread::exit(int status)
 
     _running = _scheduler.remove();
     _running->_state = RUNNING;
-    //Thread * neew = _scheduler.choose_another();
-    //neew->_state = RUNNING;
-    dispatch(prev, _running);
 
+    dispatch(prev, _running);
+    
     unlock();
 }
 
@@ -268,15 +246,9 @@ void Thread::sleep(Queue * q)
     prev->_waiting = q;
     q->insert(&prev->_link);
 
-    //_running = _ready.remove()->object();
-    //_running->_state = RUNNING;
     _running = _scheduler.remove();
     _running->_state = RUNNING;
     dispatch(prev, _running);
-
-    //Thread * neew = _scheduler.choose_another();
-    //neew->_state = RUNNING;
-    //dispatch(prev, neew);
     
     unlock();
 }
@@ -293,8 +265,7 @@ void Thread::wakeup(Queue * q)
         Thread * t = q->remove()->object();
         t->_state = READY;
         t->_waiting = 0;
-        //_ready.insert(&t->_link);
-        _scheduler.insert(t);
+        _scheduler.resume(t);
     }
 
     unlock();
@@ -315,8 +286,7 @@ void Thread::wakeup_all(Queue * q)
         Thread * t = q->remove()->object();
         t->_state = READY;
         t->_waiting = 0;
-        //_ready.insert(&t->_link);
-        _scheduler.insert(t);
+        _scheduler.resume(t);
     }
 
     unlock();
