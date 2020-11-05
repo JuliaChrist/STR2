@@ -132,7 +132,6 @@ private:
     //static Queue _ready;
     static Queue _suspended;
     static Scheduler<Thread> _scheduler;
-    //static Scheduling_List<Thread, Priority> _scheduler;
 };
 
 

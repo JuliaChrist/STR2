@@ -94,7 +94,7 @@ int func_a()
     exec('A');
     for(int i = 0; i < iterations; i++) {
         exec('a', wcet_a);
-        Periodic_Thread::wait_next();
+        Periodic_Thread::wait_next(); //sleep until
     }
     exec('A');
     return 'A';   

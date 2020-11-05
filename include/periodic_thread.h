@@ -8,22 +8,38 @@
 #include <scheduler.h>
 
 
+class Periodic_Thread: public Thread {
+
+	friend class Semaphore;
+	friend class Thread;
+
+//&func, period, deadline, comp_time, iterations
+public:
+
+    template<typename ... Tn>
+    Periodic_Thread(int (* entry)(Tn ...), const int period, const int iterations,Tn ... an)
+		: Thread(Configuration(SUSPENDED, period),entry,an ...), _semaphore(0), _handler(&_semaphore,this), 
+		  _alarm(period, &_handler, iterations){}
 
 
-// class Periodic_Thread: public Thread <funcao, periodo, num_ativacoes, deadline, tempo_computacao>{
-
-// 	public:
-
-
-
-// 	private:
-// 		int _periodo;
-// 		int _num_iteracoes;
-// 		int _deadline;
-// 		int _tempo_computacao;
-// 		//????????????????????????????
+	static void wait_next(){
+		//sleep
+		reinterpret_cast<Periodic_Thread*>(Thread::running())->_semaphore.p();
+		//wakeup no handler (timer)
+	}
 
 
-// };
+private:
+	// int * funcao = &func;
+	// Microsecond _runtime;
+	// Microsecond _deadline;
+	// Microsecond _period;
+
+	// unsigned int _iterations;
+
+	// Microsecond tempo_atual;
+	// Microsecond tempo_prox;
+
+};
 
 #endif
